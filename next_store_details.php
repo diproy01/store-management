@@ -1,4 +1,8 @@
 <?php session_start();
+if (!isset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass'])) {
+    header('Location: index.php');
+    exit;
+}
 include("lib/db.class.php");
 $host = $_SESSION['host'];
 $user = $_SESSION['user'];
@@ -212,7 +216,6 @@ if (isset($_POST['submit']) and isset($_POST['sname']) and isset($_POST['address
     $user = $_SESSION['user'];
     $pass = $_SESSION['pass'];
     $name = $_SESSION['db_name'];
-    $con = mysqli_connect("$host", "$user", "$pass", "$name");
     $name = $_POST['sname'];
     $address = $_POST['address'];
     $place = $_POST['place'];
@@ -223,13 +226,11 @@ if (isset($_POST['submit']) and isset($_POST['sname']) and isset($_POST['address
     $pin = $_POST['pin'];
 
 
-    $db->query("UPDATE store_details  SET pin='" . $pin . "',city='" . $city . "',name='" . $name . "',email='" . $email . "',web='" . $web . "',address='" . $address . "',place='" . $place . "',phone='" . $phone . "' ");
-
-    // $sql="INSERT INTO `store_details` (`name`, `address`, `place`, `city`, `phone`, `email`, `web`, `pin`) VALUES
-//('".$_POST['sname']."', '".$_POST['address']."', '".$_POST['place']."', '".$_POST['city']."', '".$_POST['phone']."', '".$_POST['email']."', '".$_POST['website']."', '".$_POST['pin']."')";
-
-    // Execute query
+    $update = $db->connection->prepare('UPDATE store_details SET pin=?, city=?, name=?, email=?, web=?, address=?, place=?, phone=?');
+    $update->execute([$pin, $city, $name, $email, $web, $address, $place, $phone]);
+    unset($_SESSION['host'], $_SESSION['user'], $_SESSION['pass'], $_SESSION['db_name']);
     echo "<script>window.location = 'index.php';</script>";
+    exit;
 
 }
 ?>

@@ -1,4 +1,26 @@
-<?php session_start(); ?>
+<?php
+session_start();
+if (!isset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass'])) {
+    header('Location: index.php');
+    exit;
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = $_POST['uname'] ?? '';
+    $password = $_POST['password'] ?? '';
+    $answer = $_POST['answer'] ?? '';
+    if (!is_string($username) || !is_string($password) || !is_string($answer)
+        || trim($username) === '' || $password === '' || trim($answer) === '') {
+        http_response_code(400);
+        exit('Enter a username, password, and recovery answer.');
+    }
+    require_once __DIR__ . '/lib/db.class.php';
+    $db = new DB($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass']);
+    $stmt = $db->connection->prepare("INSERT INTO stock_user (id, username, password, user_type, answer) VALUES (1, ?, ?, 'admin', ?)");
+    $stmt->execute([$username, $password, $answer]);
+    header('Location: next_store_details.php');
+    exit;
+}
+?>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -101,34 +123,7 @@
 </div>
 <!-- end header -->
 
-<?php
-include("lib/db.class.php");
 
-$host = $_SESSION['host'];
-$user = $_SESSION['user'];
-$pass = $_SESSION['pass'];
-$name = $_SESSION['db_name'];
-// Open the base (construct the object):
-$db = new DB($name, $host, $user, $pass);
-
-# Note that filters and validators are separate rule sets and method calls. There is a good reason for this.
-
-require "lib/gump.class.php";
-
-if (isset($_POST['submit']) and isset($_POST['uname']) and isset($_POST['password']) and isset($_POST['answer'])) {
-    $host = $_SESSION['host'];
-    $user = $_SESSION['user'];
-    $pass = $_SESSION['pass'];
-    $name = $_SESSION['db_name'];
-    $con = mysqli_connect("$host", "$user", "$pass", "$name");
-    $uname = $_POST['uname'];
-    $password = $_POST['password'];
-    $answer = $_POST['answer'];
-    $db->query("UPDATE stock_user  SET username ='" . $uname . "',password='" . $password . "',answer='" . $answer . "'");
-    echo "<script>window.location = 'next_store_details.php';</script>";
-    // exit;
-}
-?>
 
 <!-- MAIN CONTENT -->
 <div id="content">

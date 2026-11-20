@@ -24,20 +24,21 @@
 
     /** Connect to a MySQL database to be able to use the methods below.
       */
-    function DB($base, $server, $user, $pass)
+    public mysqli $connection;
+
+    function __construct($base, $server, $user, $pass)
     {
       $this->mtStart    = $this->getMicroTime();
       $this->nbQueries  = 0;
       $this->lastResult = NULL;
-      $this->connection = FALSE;
-      $this->connection = mysqli_connect($server, $user, $pass, $base);
-
-      if ($this->connection==FALSE) {
-          $data='Database Connection is Not valid Please Enter The valid database connection';
-   header("location: install.php?msg=$data");
-    exit;
-       
-}
+      try {
+        $this->connection = new mysqli($server, $user, $pass, $base);
+        $this->connection->set_charset('utf8mb4');
+      } catch (mysqli_sql_exception $exception) {
+        error_log($exception->getMessage());
+        http_response_code(503);
+        exit('Database connection failed. Check config.php and the database server.');
+      }
     }
 
     /** Query the database.
@@ -126,7 +127,7 @@
 
       $this->debug($debug, $query, $result);
 
-      return $line[0];
+      return $line[0] ?? null;
     }
     /** Get the maximum value of a column in a table, with a condition.
       * @param $column The column where to compute the maximum.
@@ -188,8 +189,8 @@
 
       $reason = ($debug === -1 ? "Default Debug" : "Debug");
       $this->debugQuery($query, $reason);
-      if ($result == NULL)
-        echo "<p style=\"margin: 2px;\">Number of affected rows: ".mysqli_affected_rows()."</p></div>";
+      if (!$result instanceof mysqli_result)
+        echo "<p style=\"margin: 2px;\">Number of affected rows: ".mysqli_affected_rows($this->connection)."</p></div>";
       else
         $this->debugResult($result);
     }
@@ -218,7 +219,7 @@
       // BEGIN HEADER
       $tables    = array();
       $nbTables  = -1;
-      $lastTable = "";
+      $lastTable = null;
       $fields    = array();
       $nbFields  = -1;
       while ($column = mysqli_fetch_field($result)) {
@@ -239,10 +240,10 @@
         echo "<th>".$fields[$i]."</th>";
       echo "</thead>";
       // END HEADER
-      while ($row = mysqli_fetch_array($this->connection,$result)) {
+      while ($row = mysqli_fetch_row($result)) {
         echo "<tr>";
         for ($i = 0; $i < $numFields; $i++)
-          echo "<td>".htmlentities($row[$i])."</td>";
+          echo "<td>".htmlentities((string) $row[$i])."</td>";
         echo "</tr>";
       }
       echo "</table></div>";
@@ -277,7 +278,7 @@
       */
     function lastInsertedId()
     {
-      return mysqli_insert_id();
+      return mysqli_insert_id($this->connection);
     }
     /** Close the connexion with the database server.\n
       * It's usually unneeded since PHP do it automatically at script end.
@@ -292,8 +293,6 @@
       */
     function getMicroTime()
     {
-      list($msec, $sec) = explode(' ', microtime());
-      return floor($sec / 1000) + $msec;
+      return microtime(true);
     }
   } // class DB
-?>

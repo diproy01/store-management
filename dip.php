@@ -1,37 +1,18 @@
 <?php
-/*
-$con = mysqli_connect('localhost','isolutio_dipak','dipak@@1234');
-if (!$con) {
-    die('Could not connect: ' . mysqli_error($con));
+require_once __DIR__ . '/init.php';
+
+header('Content-Type: application/json; charset=UTF-8');
+$barcode = $_POST['barcode'] ?? '';
+if (!is_string($barcode) || $barcode === '') {
+    echo json_encode(['no' => 'no']);
+    exit;
 }
-mysqli_select_db($con,"isolutio_ihelpsolution");
-$q = mysqli_real_escape_string($con,$_REQUEST['q']);
-$sql="SELECT stock_name FROM stock_details WHERE barcode = '$q'";
-$result = mysqli_query($con,$sql);
-$row = mysqli_fetch_array($result);
-echo $row['stock_name'];
-mysqli_close($con);
-*/
 
-<?php
-include_once("init.php");
-
-$line = $db->queryUniqueObject("SELECT * FROM stock_details  WHERE barcode ='".$_POST['barcode']."'");
-//$cost = $line->company_price;
-$sell = $line->selling_price;
-$stock_id = $line->stock_name;
-$model = $line->stock_brand;
-$stock = $line->stock_quatity;
-
-if ($line != NULL) {
-	$arr = array("sell" => "$sell", "stock" => "$stock", "model" => "$model", "guid" => "$stock_id");
-    //$arr = array("guid" => $stock_id);
-    echo json_encode($arr);
-
-} else {
-    $arr1 = array("no" => "no");
-    echo json_encode($arr1);
-
-}
-?>
-
+$barcode = $db->connection->real_escape_string($barcode);
+$item = $db->queryUniqueObject("SELECT * FROM stock_details WHERE barcode = '$barcode'");
+echo json_encode($item ? [
+    'sell' => (string) $item->selling_price,
+    'stock' => (string) $item->stock_quatity,
+    'model' => (string) $item->stock_brand,
+    'guid' => (string) $item->stock_name,
+] : ['no' => 'no']);

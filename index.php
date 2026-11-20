@@ -1,14 +1,17 @@
 <?php
 session_start();
-if (!file_exists("config.php") || !include_once "config.php") {
+if (!is_file(__DIR__ . '/config.php')) {
     header("location: install.php");
+    exit;
 }
 if (!defined('posnicEntry')) {
     define('posnicEntry', true);
 }
 if (isset($_SESSION['username'])) {
-    if ($_SESSION['usertype'] == 'admin') // if session variable "username" does not exist.
-        header("location: dashboard.php"); // Re-direct to index.php
+    if (($_SESSION['usertype'] ?? null) === 'admin') {
+        header('Location: dashboard.php');
+        exit;
+    }
 }
 ?>
 <!DOCTYPE html>

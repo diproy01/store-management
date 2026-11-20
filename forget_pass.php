@@ -2,7 +2,11 @@
 
 error_reporting(0);
 include("lib/db.class.php");
-include_once "config.php";
+if (!is_file(__DIR__ . '/config.php')) {
+    header('Location: install.php');
+    exit;
+}
+require_once __DIR__ . '/config.php';
 
 
 // Open the base (construct the object):

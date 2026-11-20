@@ -156,7 +156,9 @@ include_once("init.php");
         $todate = $mysqldate;
 echo "<tr><td>".$fromdate."</td></tr>";
 echo "<tr><td>".$todate."</td></tr>";
-
+                                    }
+                                }
+                                ?>
                             </table>
                         </form>
 

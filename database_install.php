@@ -1,5 +1,26 @@
-<?php session_start();
-
+<?php
+session_start();
+if (is_file(__DIR__ . '/config.php')) {
+    header('Location: index.php');
+    exit;
+}
+if (isset($_POST['host'], $_POST['username'], $_POST['password'])
+    && is_string($_POST['host']) && is_string($_POST['username']) && is_string($_POST['password'])) {
+    $_SESSION['host'] = trim($_POST['host']);
+    $_SESSION['user'] = trim($_POST['username']);
+    $_SESSION['pass'] = $_POST['password'];
+}
+if (empty($_SESSION['host']) || empty($_SESSION['user'])) {
+    header('Location: install.php');
+    exit;
+}
+try {
+    $link = new mysqli($_SESSION['host'], $_SESSION['user'], $_SESSION['pass']);
+    $databases = $link->query('SHOW DATABASES');
+} catch (mysqli_sql_exception $exception) {
+    header('Location: install.php?msg=' . rawurlencode('Database connection failed. Check your settings.'));
+    exit;
+}
 ?>
 <html lang="en">
 <head>
@@ -104,28 +125,6 @@
 
 <!-- MAIN CONTENT -->
 <div id="content">
-    <?php
-    if ((isset($_POST['host']) and isset($_POST['username']) and $_POST['host'] != "" and $_POST['username'] != "") or (isset($_SESSION['host']) and isset($_SESSION['user'])))
-    {
-
-    if (isset($_SESSION['host'])) {
-        $host = $_SESSION['host'];
-        $user = $_SESSION['user'];
-        $pass = $_SESSION['pass'];
-    }
-    if (isset($_POST['host'])) {
-        $host = trim($_POST['host']);
-        $user = trim($_POST['username']);
-        $pass = trim($_POST['password']);
-    }
-    $link = mysqli_connect("$host", "$user", "$pass");
-    if (!$link) {
-        $data = "Database Configration is Not vaild";
-        header("location: install.php?msg=$data");
-        exit;
-    }
-
-    ?>
     <form action="setup_page.php" method="POST" id="login-form" class="cmxform" autocomplete="off">
 
         <fieldset>
@@ -141,61 +140,25 @@
             </p>
 
             <p>
-                <?php
-                $con = mysqli_connect("$host", "$user", "$pass");
-                // Check connection
-                $sql = "CREATE DATABASE MY_posnic_1234";
-                if (mysqli_query($con, $sql)) {
-                    $sql = "DROP DATABASE MY_posnic_1234";
-                    mysqli_query($con, $sql);
-
-                    ?>
-                    <input type="radio" value="1" name="select[]" id="create"
-                           onclick="create_data()">Create New DataBase
-                    <input type="text" id="name" class="round full-width-input" name="name" autofocus/>
-                    <?php
-                } else {
-                    ?>
-
-                    <input type="radio" disabled="disabled">Create New DataBase
-                    <input type="text" disabled="disabled" class="round full-width-input"
-                           placeholder="No Permission To Create New Database" name="name" autofocus/>
-                    <?php
-                }
-                ?>
-
-
+                <input type="radio" value="1" name="select[]" id="create"
+                       onclick="create_data()">Create New Database
+                <input type="text" id="name" class="round full-width-input" name="name" autofocus/>
             </p>
 
             <p>
                 <input type="radio" name="select[]" id="select" onclick="select_data()">Select Created DataBase<br>
                 <select name="select_box" class="round full-width-input" id="select_box"
                         style="padding: 5px 10px 5px 10px; border: 1px solid #D9DBDD;">
-                    <?php
-
-
-                    $dbh = new PDO("mysql:host=$host", $user, $pass);
-                    $dbs = $dbh->query('SHOW DATABASES');
-
-                    while (($db = $dbs->fetchColumn(0)) !== false) {
-                        echo "<option value=" . $db . " style=margin:10px 10px 10px 10px;><p >$db</p></option>";
-                    }
-                    ?>
+                    <?php while ($database = $databases->fetch_row()) {
+                        if (in_array($database[0], ['information_schema', 'mysql', 'performance_schema', 'sys'], true)) {
+                            continue;
+                        }
+                        $name = htmlspecialchars($database[0], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                        echo '<option value="' . $name . '">' . $name . '</option>';
+                    } ?>
                 </select>
 
             </p>
-            <input type="hidden" name="host" value="<?php echo $host ?>">
-
-            <input type="hidden" name="username" value="<?php echo $user ?>">
-            <input type="hidden" name="password" value="<?php echo $pass ?>">
-
-            <br>
-            <input type="checkbox" name="dummy" value="1">Add Demo Data
-            <br>
-            <br>
-
-
-            <!--<a href="dashboard.php" class="button round blue image-right ic-right-arrow">LOG IN</a>-->
             <input type="submit" class="button round blue image-right ic-right-arrow" name="submit" value="INSTALL"/>
         </fieldset>
 
@@ -203,7 +166,7 @@
 
 </div>
 <!-- end content -->
-<?php } ?>
+
 
 
 <!-- FOOTER -->

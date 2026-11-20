@@ -631,7 +631,7 @@ function load_data() {
 							$c_id = mysqli_real_escape_string($db->connection, $_POST['c_id']);
                             $address = mysqli_real_escape_string($db->connection, $_POST['address']);
                             $contact = mysqli_real_escape_string($db->connection, $_POST['contact']);
-                            $count = $db->countOf("customer_details", "customer_name='$customer' && id='$c_id'");
+                            $count = $db->countOf("customer_details", "customer_name='$customer' && id=NULLIF('$c_id', '')");
                             if ($count == 0 && $customer!='') {
                                 $db->query("insert into customer_details(customer_name,customer_address,customer_contact1) values('$customer','$address','$contact')");
 								$c_id = $db->queryUniqueValue("Select id from customer_details where customer_name = '$customer' and customer_address = '$address' and customer_contact1 = '$contact'");
@@ -666,10 +666,10 @@ function load_data() {
                                 $tax = 00;
                             }
                             $tax_dis = mysqli_real_escape_string($db->connection, $_POST['tax_dis']);
-                            $temp_balance = $db->queryUniqueValue("SELECT balance FROM customer_details WHERE customer_name='$customer' and id='$c_id'");
+                            $temp_balance = $db->queryUniqueValue("SELECT balance FROM customer_details WHERE customer_name='$customer' and id=NULLIF('$c_id', '')");
                             $temp_balance = (int)$temp_balance + (int)$balance;
-                            $db->execute("UPDATE customer_details SET balance=$temp_balance WHERE customer_name='$customer' and id='$c_id'");
-                            $selected_date = $_POST['due'];
+                            $db->execute("UPDATE customer_details SET balance=$temp_balance WHERE customer_name='$customer' and id=NULLIF('$c_id', '')");
+                            $selected_date = $_POST['duedate'] ?? '';
                             $selected_date = strtotime($selected_date);
                             $mysqldate = date('Y-m-d H:i:s', $selected_date);
                             $due = $mysqldate;

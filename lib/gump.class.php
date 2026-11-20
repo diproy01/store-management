@@ -65,6 +65,18 @@ class GUMP
 		return $this->get_readable_errors(true);
 	}
 	
+	private static function sanitizeString($value)
+	{
+		if ($value !== null && !is_scalar($value)) {
+			return false;
+		}
+		return str_replace(
+			["\0", '"', "'"],
+			['', '&#34;', '&#39;'],
+			strip_tags((string) $value)
+		);
+	}
+
 	/**
 	 * Perform XSS clean to prevent cross site scripting
 	 * 
@@ -77,7 +89,7 @@ class GUMP
 	{
 		foreach($data as $k => $v)
 		{
-			$data[$k] = filter_var($v, FILTER_SANITIZE_STRING);		
+			$data[$k] = self::sanitizeString($v);
 		}
 		
 		return $data;
@@ -144,7 +156,6 @@ class GUMP
 	 */
 	public function sanitize(array $input, $fields = NULL, $utf8_encode = true)
 	{
-		$magic_quotes = (bool)get_magic_quotes_gpc();
 		
 		if(is_null($fields))
 		{
@@ -163,10 +174,6 @@ class GUMP
 				
 				if(is_string($value))
 				{
-					if($magic_quotes === TRUE)
-					{
-						$value = stripslashes($value);
-					}
 					
 					if(strpos($value, "\r") !== FALSE)
 					{
@@ -177,12 +184,12 @@ class GUMP
 					{
 						$current_encoding = mb_detect_encoding($value);
 						
-						if($current_encoding != 'UTF-8' && $current_encoding != 'UTF-16') {
+						if($current_encoding !== false && $current_encoding != 'UTF-8' && $current_encoding != 'UTF-16') {
 							$value = iconv($current_encoding, 'UTF-8', $value);
 						}
 					}
 					
-					$value = filter_var($value, FILTER_SANITIZE_STRING);
+					$value = self::sanitizeString($value);
 				}
 				
 				$input[$field] = $value;
@@ -530,7 +537,7 @@ class GUMP
 	 */
 	protected function filter_sanitize_string($value, $params = NULL)
 	{
-		return filter_var($value, FILTER_SANITIZE_STRING);
+		return self::sanitizeString($value);
 	}
 	
 	/**

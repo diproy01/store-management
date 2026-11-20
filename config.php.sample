@@ -1,10 +1,7 @@
 <?php
-
-$config["database"] = "posnicbasic";
-
-$config["host"]= "localhost";
-
-$config["username"]= "root";
-
-$config["password"]= "";
-?>
+$config = [
+    'database' => 'store_management',
+    'host' => 'localhost',
+    'username' => 'store_user',
+    'password' => '',
+];

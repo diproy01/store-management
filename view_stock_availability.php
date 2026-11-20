@@ -218,7 +218,7 @@ include_once("init.php");
                                 $SQL = "SELECT * FROM  stock_avail ORDER BY id DESC";
                                 if (isset($_POST['Search']) AND trim($_POST['searchtxt']) != "") {
 
-                                    $SQL = "SELECT * FROM  stock_avail WHERE name LIKE '%" . $_POST['searchtxt'] . "%' ORDER BY id DESC GROUP BY category";
+                                    $SQL = "SELECT * FROM  stock_avail WHERE name LIKE '%" . $_POST['searchtxt'] . "%' ORDER BY id DESC";
 
 
                                 }
