@@ -7,7 +7,7 @@ include_once("init.php");
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ISOLUTION - Add Sell</title>
+    <title>Store Management - Add Sell</title>
 
     <!-- Stylesheets -->
 
@@ -928,14 +928,6 @@ function load_data() {
 </div>
 <!-- end content -->
 
-
-<!-- FOOTER -->
-<div id="footer">
-    <p>Any Queries email to <a target="blank" href="http://ihelpbd.com/">info@ihelpbd.com</a>.
-    </p>
-
-</div>
-<!-- end footer -->
 
 </body>
 </html>

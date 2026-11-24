@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ISOLUTION - Login to Control Panel</title>
+    <title>Store Management - Login to Control Panel</title>
 
     <!-- Stylesheets -->
 
@@ -85,13 +85,7 @@
         </div>
         <!-- login-intro -->
 
-        <!-- Change this image to your own company's logo -->
-        <!-- The logo will automatically be resized to 39px height. -->
-        <a href="#" id="company-branding" class="fr"><img src="<?php if (isset($_SESSION['logo'])) {
-                echo "upload/" . $_SESSION['logo'];
-            } else {
-                echo "upload/posnic.png";
-            } ?>" alt="Point of Sale"/></a>
+        <?php require_once __DIR__ . '/tpl/store_brand.php'; renderStoreBrand('company-branding'); ?>
 
     </div>
     <!-- end full-width -->
@@ -145,38 +139,6 @@
 </div>
 <!-- end content -->
 
-
-<!-- FOOTER -->
-<div id="footer">
-    <script>(function (d, s, id) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) return;
-            js = d.createElement(s);
-            js.id = id;
-            js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=286371564842269";
-            fjs.parentNode.insertBefore(js, fjs);
-        }(document, 'script', 'facebook-jssdk'));</script>
-
-    <div id="fb-root"></div>
-    <div class="fb-like" data-href="https://www.facebook.com/posnic.point.of.sale" data-width="450"
-         data-show-faces="true" data-send="true"></div>
-    <div class="g-plusone" data-href="https://plus.google.com/u/0/107268519615804538483"></div>
-    <script type="text/javascript">
-        (function () {
-            var po = document.createElement('script');
-            po.type = 'text/javascript';
-            po.async = true;
-            po.src = 'https://apis.google.com/js/plusone.js';
-            var s = document.getElementsByTagName('script')[0];
-            s.parentNode.insertBefore(po, s);
-        })();
-    </script>
-    <p>Any Queries email to <a target="blank" href="http://ihelpbd.com/">info@ihelpbd.com</a>.
-    </p>
-
-
-</div>
-<!-- end footer -->
 
 </body>
 </html>

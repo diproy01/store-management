@@ -26,8 +26,12 @@ Open <http://127.0.0.1:8000>. Enter your database connection details, create a d
 3. Copy `config.php.sample` to `config.php` and enter the test database connection details. Existing installations can also reuse their original `config.php`.
 4. Start the app, sign in with your existing account, and verify stock counts, purchases, sales, and reports against the backup copy.
 
-The historical dumps are available in the original project archive. Use `schema.sql` for a fresh database.
+The historical dumps were removed from the project. Keep any database backup outside the web root. Use `schema.sql` for a fresh database.
 
 ## Deployment status
 
 This is a PHP compatibility upgrade. The application still stores passwords in plaintext and uses legacy SQL construction in several pages. Run it on localhost or in a private test environment until those areas are hardened.
+
+## Store branding
+
+The default header displays Store Management. Set your own store name and upload a logo in Store Settings. If an existing database still contains your previous company details, update those fields in Store Settings so reports use your current information. If its saved logo file is missing, the header displays Store Management.

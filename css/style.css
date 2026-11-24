@@ -487,8 +487,8 @@ div#login-intro {
 	div#login-intro h1 { text-transform: uppercase; margin: 0.312em 0 0 0; }
 	div#login-intro h5 { color: #9498a1; }
 
-a#company-branding img { height: 60px; }	
-a#company-branding-small img { height: 40px; }	
+#company-branding img { height: 60px; }
+#company-branding-small img { height: 40px; }
 
 
 
@@ -753,3 +753,4 @@ div#footer {
 .my_table tr td{
     width: 80px;
 }
+.store-brand { font-weight: bold; }

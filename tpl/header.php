@@ -14,16 +14,10 @@
         </ul>
         <!-- end tabs -->
 
-        <!-- Change this image to your own company's logo -->
-        <!-- The logo will automatically be resized to 30px height. -->
         <?php $line = $db->queryUniqueObject("SELECT * FROM store_details ");
-        $_SESSION['logo'] = $line->log;
+        $_SESSION['logo'] = $line->log ?? null;
         ?>
-        <a href="#" id="company-branding-small" class="fr"><img src="<?php if (isset($_SESSION['logo'])) {
-                echo "upload/" . $_SESSION['logo'];
-            } else {
-                echo "upload/posnic.png";
-            } ?>" alt="Point of Sale"/></a>
+        <?php require_once __DIR__ . '/store_brand.php'; renderStoreBrand('company-branding-small', $_SESSION['logo'] ?? null); ?>
 
     </div>
     <!-- end full-width -->

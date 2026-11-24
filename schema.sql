@@ -250,4 +250,4 @@ ALTER TABLE `uom_details`
   MODIFY `id` int(10) UNSIGNED ZEROFILL NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 INSERT INTO store_details (name, log, type, address, place, city, phone, email, web, pin)
-VALUES ('Store Management', 'ihelplogo.png', 'png', '', '', '', '', '', '', '');
+VALUES ('Store Management', '', '', '', '', '', '', '', '', '');
