@@ -1,4 +1,8 @@
 <?php session_start();
+if (!isset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass'])) {
+    header('Location: index.php');
+    exit;
+}
 
 ?>
 <html lang="en">

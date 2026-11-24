@@ -1,13 +1,17 @@
 <?php
 session_start(); // Use session variable on this page. This function must put on the top of page.
-if (!isset($_SESSION['username']) || $_SESSION['usertype'] != 'admin') { // if session variable "username" does not exist.
-    header("location: index.php?msg=Please%20login%20to%20access%20admin%20area%20!&type=error"); // Re-direct to index.php
+if (!isset($_SESSION['username']) || ($_SESSION['usertype'] ?? null) !== 'admin') { // if session variable "username" does not exist.
+    header("location: index.php?msg=Please%20login%20to%20access%20admin%20area%20!&type=error");
+    exit;
 }
 error_reporting(0);
 include("lib/db.class.php");
-if (!include_once "config.php") {
+if (!is_file(__DIR__ . '/config.php')) {
     header("location: install.php");
+    exit;
 }
+
+require_once __DIR__ . '/config.php';
 
 // Open the base (construct the object):
 $db = new DB($config['database'], $config['host'], $config['username'], $config['password']);

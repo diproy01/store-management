@@ -1,22 +1,33 @@
-# i-SolutionsBD
-## Intro
-* A really simple Store and Sale application based on PHP/MySQL
+# Store Management
 
-## Security notes
-* Stores passwords in plain text by default
-* No cleaning of any POST / GET variables
-* PHP 5.3.x and MySQL 5.1 tested
+A PHP and MySQL/MariaDB application for point of sale, stock, purchasing, and reporting.
 
-## Installation
-* Extract the zip file 
-* Copy file to localhost
-* Run the project in localhost
-* Configure the localhost name, username and password
-* Click install button 
-* Create a database or select your existing database and click next button
-* Upload your store logo
-* Enter your store details (with your logo)
-* Press Finish
-* Enjoy
+## Requirements
 
-## If you find any difficulties in installation please modify config.php.sample file and save as config.php.
+- PHP 8.4 with the `mysqli` and `session` extensions. The validator can also use `mbstring` and `iconv`.
+- A MySQL or MariaDB database. The fresh installation was verified with MariaDB 11.8.
+- A writable PHP session directory. For the web installer, PHP also needs permission to create `config.php` in the project directory.
+
+## Run locally on Windows
+
+Start MySQL or MariaDB, open PowerShell in the extracted project directory, and run:
+
+```powershell
+php -v
+php -S 127.0.0.1:8000
+```
+
+Open <http://127.0.0.1:8000>. Enter your database connection details, create a database or select an empty one, then set the administrator login and store details. The installer uses `schema.sql` and starts with empty inventory and sales.
+
+## Upgrade an existing database
+
+1. Back up your database and test with a restored copy.
+2. If the copy matches the schema in `dipak_sample_pos_starting.sql` (2017), run `upgrade-2017-schema.sql` once on the copy. It adds the sales barcode column and defaults for fields that the application omits during inserts. If your schema differs, compare it with `schema.sql` and review which changes apply before running any SQL.
+3. Copy `config.php.sample` to `config.php` and enter the test database connection details. Existing installations can also reuse their original `config.php`.
+4. Start the app, sign in with your existing account, and verify stock counts, purchases, sales, and reports against the backup copy.
+
+The historical dumps are available in the original project archive. Use `schema.sql` for a fresh database.
+
+## Deployment status
+
+This is a PHP compatibility upgrade. The application still stores passwords in plaintext and uses legacy SQL construction in several pages. Run it on localhost or in a private test environment until those areas are hardened.

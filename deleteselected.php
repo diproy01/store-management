@@ -12,7 +12,7 @@ if (!isset($_SESSION['username']) || $_SESSION['usertype'] != 'admin') { // if s
     foreach ($_POST['checklist'] as $singleVar) {
 
         $SQL = "SELECT * FROM $tablename where id=$singleVar";
-        $result = mysqli_query($db->connection, $SQL) or die(mysqli_error());
+        $result = mysqli_query($db->connection, $SQL) or die(mysqli_error($db->connection));
         $checkuser = mysqli_num_rows($result);
         if ($checkuser > 0) {
 
@@ -54,7 +54,7 @@ if (!isset($_SESSION['username']) || $_SESSION['usertype'] != 'admin') { // if s
             }
 
 
-            mysqli_query($db->connection, "DELETE FROM $tablename WHERE id='$singleVar'") or die(mysqli_error());
+            mysqli_query($db->connection, "DELETE FROM $tablename WHERE id='$singleVar'") or die(mysqli_error($db->connection));
 
             $i++;
         }
