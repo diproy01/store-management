@@ -1,301 +1,129 @@
-<?php include_once("init.php");
+<?php
+require_once __DIR__ . '/init.php';
+require_once __DIR__ . '/tpl/store_brand.php';
+
+$fields = [
+    'sname' => ['Store name', 'name'],
+    'address' => ['Address', 'address'],
+    'place' => ['Place', 'place'],
+    'city' => ['City', 'city'],
+    'pin' => ['Postal code', 'pin'],
+    'phone' => ['Phone', 'phone'],
+    'website' => ['Website', 'web'],
+    'email' => ['Email', 'email'],
+];
+$store = $db->queryUniqueObject('SELECT * FROM store_details');
+$values = [];
+foreach ($fields as $input => [$label, $column]) {
+    $values[$input] = $store->$column ?? '';
+}
+$escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$_SESSION['store_details_token'] ??= bin2hex(random_bytes(32));
+$isSetup = !empty($_SESSION['initial_store_setup']);
+$error = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['token'] ?? '';
+    if (!is_string($token) || !hash_equals($_SESSION['store_details_token'], $token)) {
+        http_response_code(403);
+        exit('Reload Store Settings and try again.');
+    }
+
+    $logo = $store->log ?? '';
+    $logoType = $store->type ?? '';
+    $newLogo = null;
+    try {
+        foreach ($values as $input => $previous) {
+            $value = $_POST[$input] ?? '';
+            if (!is_string($value) || preg_match('/\A.{0,100}\z/us', $value) !== 1) {
+                throw new InvalidArgumentException('Use up to 100 characters in each store field.');
+            }
+            $values[$input] = trim($value);
+        }
+        if ($values['sname'] === '') {
+            throw new InvalidArgumentException('Enter your store name.');
+        }
+
+        $file = $_FILES['file'] ?? null;
+        if ($file !== null && $file['error'] !== UPLOAD_ERR_NO_FILE) {
+            $image = $file['error'] === UPLOAD_ERR_OK && $file['size'] <= 2 * 1024 * 1024
+                ? @getimagesize($file['tmp_name']) : false;
+            $formats = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_GIF => 'gif'];
+            $extension = $image ? ($formats[$image[2]] ?? null) : null;
+            if ($extension === null) {
+                throw new InvalidArgumentException('Choose a PNG, JPEG, or GIF image up to 2 MB.');
+            }
+            $logo = bin2hex(random_bytes(16)) . '.' . $extension;
+            $logoType = $image['mime'];
+            $path = __DIR__ . '/upload/' . $logo;
+            if (!move_uploaded_file($file['tmp_name'], $path)) {
+                throw new InvalidArgumentException('PHP could not write to the upload directory. Check its permissions, or save without choosing a logo.');
+            }
+            $newLogo = $path;
+        }
+
+        $statement = $db->connection->prepare(
+            'UPDATE store_details SET name=?, address=?, place=?, city=?, pin=?, phone=?, web=?, email=?, log=?, type=?'
+        );
+        $statement->execute([...array_values($values), $logo, $logoType]);
+        $_SESSION['logo'] = $logo;
+        unset($_SESSION['initial_store_setup']);
+        header('Location: ' . ($isSetup ? 'dashboard.php' : 'update_details.php?saved=1'), true, 303);
+        exit;
+    } catch (InvalidArgumentException | mysqli_sql_exception $exception) {
+        if ($newLogo !== null) {
+            unlink($newLogo);
+        }
+        if ($exception instanceof mysqli_sql_exception) {
+            error_log('Store Management settings: ' . $exception->getMessage());
+            $error = 'Unable to save store details. Check the PHP error log.';
+        } else {
+            $error = $exception->getMessage();
+        }
+    }
+}
 ?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Store Management - Login to Control Panel</title>
-
-    <!-- Stylesheets -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Management - Store Settings</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/cmxform.css">
-    <link rel="stylesheet" href="js/lib/validationEngine.jquery.css">
-
-    <!-- Scripts -->
-    <script src="js/lib/jquery.min.js" type="text/javascript"></script>
-    <script src="js/lib/jquery.validate.min.js" type="text/javascript"></script>
-
-    <script>
-        /*$.validator.setDefaults({
-         submitHandler: function() { alert("submitted!"); }
-         });*/
-
-        $(document).ready(function () {
-
-            // validate signup form on keyup and submit
-            $("#login-form").validate({
-                rules: {
-                    sname: {
-                        required: true,
-                        minlength: 3
-                    },
-                    address: {
-                        required: true,
-                        minlength: 3
-                    },
-                    place: {
-                        required: true,
-                        minlength: 3
-                    },
-                    website: {
-                        required: true,
-                        minlength: 3
-                    },
-                    email: {
-                        required: true,
-                        minlength: 3
-                    },
-                    phone: {
-                        required: true,
-                        minlength: 10,
-                        maxlength: 12
-                    },
-                    city: {
-                        required: true,
-                        minlength: 3
-                    }
-                },
-                messages: {
-                    sname: {
-                        required: "Please Enter The Store Name",
-                        minlength: "Your Store Name must consist of at least 3 characters"
-                    },
-                    address: {
-                        required: "Please Enter The Address",
-                        minlength: "Your Address must be at least 3 characters long"
-                    },
-                    place: {
-                        required: "Please Enter The Place",
-                        minlength: "Your place must be at least 3 characters long"
-                    },
-                    website: {
-                        required: "Please Enter The Website",
-                        minlength: "Your Website must be at least 3 characters long"
-                    },
-                    email: {
-                        required: "Please Enter The email",
-                        minlength: "Your Email must be at least 3 characters long"
-                    },
-                    phone: {
-                        required: "Please Enter The Phone",
-                        minlength: "Your Phone must be at least 10 characters long",
-                        maxlength: "Your Phone must be at Less than 13 characters long"
-                    },
-                    city: {
-                        required: "Please Enter The city",
-                        minlength: "Your city must be at least 3 characters long"
-                    }
-                }
-            });
-
-        });
-
-    </script>
-
-    <!-- Optimize for mobile devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
-<?php if (isset($_POST['submit']) and $_POST['submit'] === 'Submit') {
-
-    $allowedExts = array("gif", "jpeg", "jpg", "png");
-    $temp = explode(".", $_FILES["file"]["name"]);
-    $extension = end($temp);
-    if ((($_FILES["file"]["type"] == "image/gif")
-            || ($_FILES["file"]["type"] == "image/png"))
-        && ($_FILES["file"]["size"] < 30000)
-        && in_array($extension, $allowedExts)
-    ) {
-        if ($_FILES["file"]["error"] > 0) {
-            echo "Return Code: " . $_FILES["file"]["error"] . "<br>";
-        } else {
-            $upload = $_FILES["file"]["name"];
-            $type = $_FILES["file"]["type"];
-
-
-            if (file_exists("upload/" . $_FILES["file"]["name"])) {
-
-                unlink($upload);
-            }
-
-
-            $name = $_FILES["file"]["name"];
-            move_uploaded_file($_FILES["file"]["tmp_name"],
-                "upload/" . $name);
-            //echo "Stored in: " . "upload/" . $_FILES["file"]["name"];
-            $upload;
-            $_SESSION['logo'] = $upload;
-
-            # Note that filters and validators are separate rule sets and method calls. There is a good reason for this.
-
-            $db->query("UPDATE store_details  SET log ='" . $upload . "',type='" . $type . "'");
-            ?>
-            <script type="text/javascript">
-                setTimeout("window.location.reload();", 4000);
-            </script>
-            <?php
-            echo "<script>window.location = 'update_details.php';</script>";
-
-        }
-    } else {
-        echo "<p  style=color:red;margin-left:550px;font-size:20px >Invalid file</p>";
-    }
-}
-
-?>
-
-<!--    Only Index Page for Analytics   -->
-
-<!-- TOP BAR -->
-<div id="top-bar">
-
-    <div class="page-full-width">
-
-        <!--<a href="#" class="round button dark ic-left-arrow image-left ">See shortcuts</a>-->
-
-    </div>
-    <!-- end full-width -->
-
-</div>
-<!-- end top-bar -->
-
-
-<!-- HEADER -->
 <div id="header">
-
     <div class="page-full-width cf">
-
-        <div id="login-intro" class="fl">
-
-            <h1>Store Setting </h1>
-
-
-        </div>
-        <!-- login-intro -->
-
-        <?php require_once __DIR__ . '/tpl/store_brand.php'; renderStoreBrand('company-branding', $_SESSION['logo'] ?? null); ?>
-
+        <h1 class="fl">Store Settings</h1>
+        <?php renderStoreBrand('company-branding', $store->log ?? null); ?>
     </div>
-    <!-- end full-width -->
-
 </div>
-<!-- end header -->
-
-<?php
-
-if (isset($_POST['submit']) and isset($_POST['sname']) and isset($_POST['address']) and $_POST['submit'] == 'Update') {
-    $name = $_POST['sname'];
-    $address = $_POST['address'];
-    $place = $_POST['place'];
-    $city = $_POST['city'];
-    $phone = $_POST['phone'];
-    $web = $_POST['website'];
-    $email = $_POST['email'];
-    $pin = $_POST['pin'];
-    if ($db->query("UPDATE store_details  SET pin='" . $pin . "',city='" . $city . "',name='" . $name . "',email='" . $email . "',web='" . $web . "',address='" . $address . "',place='" . $place . "',phone='" . $phone . "' "))
-        echo "<br><font color=green size=+1 > Store Details Updated!</font>";
-
-    //  exit;
-}
-?>
-
-
-<!-- MAIN CONTENT -->
 <div id="content">
-
-
-    <form action="" method="POST" id="login-form" class="cmxform" autocomplete="off">
-        <?php
-        $line = $db->queryUniqueObject("SELECT * FROM store_details ");
-        ?>
-        <table>
-            <tr>
-                <td>
-
-                    <p>
-                        <label>Store Name</label>
-                        <input type="text" name="sname" id="name" class="round full-width-input"
-                               value="<?php echo $line->name ?>" autofocus/>
-                    </p></td>
-                <td>
-                    <p>
-                        <label>Address</label>
-                        <input type="text" name="address" id="address" class="round full-width-input"
-                               value="<?php echo $line->address ?>" autofocus/>
-                    </p></td>
-            </tr>
-            <tr>
-                <td>
-                    <p>
-                        <label>Place</label>
-                        <input type="text" name="place" id="place" class="round full-width-input"
-                               value="<?php echo $line->place ?>" autofocus/>
-                    </p>
-                </td>
-                <td>
-                    <p>
-                        <label>City</label>
-                        <input type="text" name="city" id="city" class="round full-width-input"
-                               value="<?php echo $line->city ?>" autofocus/>
-                    </p></td>
-            </tr>
-            <tr>
-                <td>
-                    <p>
-                        <label>Pin</label>
-                        <input type="text" name="pin" id="pin" class="round full-width-input"
-                               value="<?php echo $line->pin ?>" autofocus/>
-                    </p>
-
-                </td>
-                <td>
-                    <p>
-                        <label>Phone</label>
-                        <input type="text" name="phone" id="phone" class="round full-width-input"
-                               value="<?php echo $line->phone ?>" autofocus/>
-                    </p></td>
-            </tr>
-            <tr>
-                <td>
-                    <p>
-                        <label>Website</label>
-                        <input type="text" name="website" id="website" class="round full-width-input"
-                               value="<?php echo $line->web ?>" autofocus/>
-                    </p></td>
-                <td>
-                    <p>
-                        <label>Email</label>
-                        <input type="text" name="email" id="email" class="round full-width-input"
-                               value="<?php echo $line->email ?>" autofocus/>
-                    </p>
-
-                </td>
-            </tr>
-            <tr></tr>
-            <tr>
-                <td>
-
-
-                    <!--<a href="dashboard.php" class="button round blue image-right ic-right-arrow">LOG IN</a>-->
-                    <input type="submit" class="button round blue image-right ic-right-arrow" name="submit"
-                           value="Update"/>
-                </td>
-                <td><a href="index.php" class="button blue round side-content">Dashboard</a></td>
-            </tr>
-        </table>
-
+    <?php if ($error !== ''): ?>
+        <p class="error-box round" role="alert"><?= $escape($error) ?></p>
+    <?php elseif (isset($_GET['saved'])): ?>
+        <p class="confirmation-box round" role="status">Store details saved.</p>
+    <?php endif; ?>
+    <form method="post" id="login-form" class="cmxform" enctype="multipart/form-data">
+        <input type="hidden" name="token" value="<?= $escape($_SESSION['store_details_token']) ?>">
+        <?php foreach ($fields as $input => [$label]): ?>
+            <p>
+                <label for="<?= $input ?>"><?= $label ?></label>
+                <input type="text" name="<?= $input ?>" id="<?= $input ?>" maxlength="100"
+                       class="round full-width-input" value="<?= $escape($values[$input]) ?>"
+                       <?= $input === 'sname' ? 'required' : '' ?>>
+            </p>
+        <?php endforeach; ?>
+        <p>
+            <label for="file">Store logo (optional)</label>
+            <input type="file" name="file" id="file" accept="image/png,image/jpeg,image/gif">
+        </p>
+        <p>
+            <button type="submit" class="button round blue"><?= $isSetup ? 'Finish setup' : 'Save changes' ?></button>
+            <a href="dashboard.php" class="button blue round">Dashboard</a>
+        </p>
     </form>
-    <div style="float: right;margin-top: -350px">
-        <form action="" method="POST" id="login-form" class="cmxform" enctype="multipart/form-data">
-            <p>Upload Logo</p>
-            <input type="file" name="file" id="file" class="round full-width-input"><br><br><br>
-            <input type="submit" name="submit" value="Submit" class="button round blue image-right ic-right-arrow">
-        </form>
-    </div>
 </div>
-<!-- end content -->
-
-
 </body>
 </html>
-

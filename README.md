@@ -19,6 +19,12 @@ php -S 127.0.0.1:8000
 
 Open <http://127.0.0.1:8000>. Enter your database connection details, create a database or select an empty one, then set the administrator login and store details. The installer uses `schema.sql` and starts with empty inventory and sales.
 
+### Recover an unfinished installation
+
+If PHP reports that it cannot save `config.php`, correct the PHP worker's write access to the project directory, including its SELinux context where applicable. Then select the same database in the installer. A complete setup schema with its initial store row and no users can be reused. For a partially created schema, use a new empty database.
+
+If `config.php` was saved but the browser session ended before creating the first admin, open `install.php` and enter the same database credentials to resume. Once an account exists, sign in and finish your profile in Store Settings. The logo is optional and requires write access to the `upload/` directory.
+
 ## Upgrade an existing database
 
 1. Back up your database and test with a restored copy.

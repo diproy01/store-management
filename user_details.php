@@ -4,6 +4,22 @@ if (!isset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION
     header('Location: index.php');
     exit;
 }
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib/db.class.php';
+if ($config !== [
+    'database' => $_SESSION['db_name'],
+    'host' => $_SESSION['host'],
+    'username' => $_SESSION['user'],
+    'password' => $_SESSION['pass'],
+]) {
+    header('Location: index.php');
+    exit;
+}
+$db = new DB($config['database'], $config['host'], $config['username'], $config['password']);
+if ($db->countOfAll('stock_user') > 0) {
+    header('Location: index.php');
+    exit;
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['uname'] ?? '';
     $password = $_POST['password'] ?? '';
@@ -13,11 +29,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(400);
         exit('Enter a username, password, and recovery answer.');
     }
-    require_once __DIR__ . '/lib/db.class.php';
-    $db = new DB($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass']);
     $stmt = $db->connection->prepare("INSERT INTO stock_user (id, username, password, user_type, answer) VALUES (1, ?, ?, 'admin', ?)");
-    $stmt->execute([$username, $password, $answer]);
-    header('Location: next_store_details.php');
+    try {
+        $stmt->execute([trim($username), $password, $answer]);
+    } catch (mysqli_sql_exception $exception) {
+        if ($exception->getCode() !== 1062) {
+            throw $exception;
+        }
+        header('Location: index.php');
+        exit;
+    }
+    session_regenerate_id(true);
+    unset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass']);
+    $_SESSION['id'] = 1;
+    $_SESSION['username'] = trim($username);
+    $_SESSION['usertype'] = 'admin';
+    $_SESSION['initial_store_setup'] = true;
+    header('Location: update_details.php');
     exit;
 }
 ?>

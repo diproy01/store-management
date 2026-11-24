@@ -1,9 +1,5 @@
 <?php
 session_start();
-if (is_file(__DIR__ . '/config.php')) {
-    header('Location: index.php');
-    exit;
-}
 if (isset($_POST['host'], $_POST['username'], $_POST['password'])
     && is_string($_POST['host']) && is_string($_POST['username']) && is_string($_POST['password'])) {
     $_SESSION['host'] = trim($_POST['host']);
@@ -12,6 +8,18 @@ if (isset($_POST['host'], $_POST['username'], $_POST['password'])
 }
 if (empty($_SESSION['host']) || empty($_SESSION['user'])) {
     header('Location: install.php');
+    exit;
+}
+if (is_file(__DIR__ . '/config.php')) {
+    require __DIR__ . '/config.php';
+    if ($config['host'] === $_SESSION['host']
+        && $config['username'] === $_SESSION['user']
+        && hash_equals($config['password'], $_SESSION['pass'])) {
+        $_SESSION['db_name'] = $config['database'];
+        header('Location: user_details.php');
+    } else {
+        header('Location: index.php');
+    }
     exit;
 }
 try {
