@@ -6,24 +6,29 @@ A PHP and MySQL/MariaDB application for point of sale, stock, purchasing, and re
 
 - PHP 8.4 with the `mysqli` and `session` extensions. The validator can also use `mbstring` and `iconv`.
 - A MySQL or MariaDB database. The fresh installation was verified with MariaDB 11.8.
-- A writable PHP session directory. For the web installer, PHP also needs permission to create `config.php` in the project directory.
+- A writable PHP session directory.
 
-## Run locally on Windows
+## Fresh installation
 
-Start MySQL or MariaDB, open PowerShell in the extracted project directory, and run:
+1. Create an **empty** database in phpMyAdmin or your database administration tool. Give the app's database account access to that database, including permission to create and alter its tables during setup.
+2. From the project folder on Oracle Linux, create the local configuration as the deployment administrator. Do this only for a new installation:
 
-```powershell
-php -v
-php -S 127.0.0.1:8000
-```
+   ```bash
+   cp -n config.php.sample config.php
+   php -r 'echo bin2hex(random_bytes(24)), PHP_EOL;'
+   ```
 
-Open <http://127.0.0.1:8000>. Enter your database connection details, create a database or select an empty one, then set the administrator login and store details. The installer uses `schema.sql` and starts with empty inventory and sales.
+   Edit `config.php`. Set `database`, `host`, `username`, and `password`, then paste the generated value into `setup_token`. PHP-FPM needs read access to the file. For the `apache` worker on Oracle Linux, you can use `chgrp apache config.php` and `chmod 0640 config.php` from your administrator shell.
+3. Open `/store-management/install.php` in your browser. Enter your setup token. The wizard creates the tables, prompts you to create the first administrator, and opens Store Settings.
+4. Save your store details. Clear `setup_token` in your local configuration after setup. Keep `config.php` out of Git.
 
-### Recover an unfinished installation
+On Windows PowerShell, use `Copy-Item config.php.sample config.php` on a fresh checkout. The same PHP command generates the token. For local testing, run `php -S 127.0.0.1:8000` in the project directory and open <http://127.0.0.1:8000/install.php>.
 
-If PHP reports that it cannot save `config.php`, correct the PHP worker's write access to the project directory, including its SELinux context where applicable. Then select the same database in the installer. A complete setup schema with its initial store row and no users can be reused. For a partially created schema, use a new empty database.
+The web installer only reads the project directory. Leave its standard Apache and SELinux permissions in place. A custom logo is optional and requires write access to `upload/` only.
 
-If `config.php` was saved but the browser session ended before creating the first admin, open `install.php` and enter the same database credentials to resume. Once an account exists, sign in and finish your profile in Store Settings. The logo is optional and requires write access to the `upload/` directory.
+### Resume setup
+
+If a previous installer created all the tables but failed before creating the first user, point `config.php` at that database and open `install.php`. The wizard reuses the complete schema. For a partially created schema, use a new empty database. If an account already exists, sign in and finish the profile in Store Settings.
 
 ## Upgrade an existing database
 

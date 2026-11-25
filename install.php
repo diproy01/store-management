@@ -1,144 +1,42 @@
 <?php
-
+session_start();
+if (is_file(__DIR__ . '/config.php')) {
+    require __DIR__ . '/config.php';
+}
+$enabled = is_string($config['setup_token'] ?? null) && strlen($config['setup_token']) >= 32;
+$error = isset($_GET['invalid']);
 ?>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Store Management - Login to Control Panel</title>
-
-    <!-- Stylesheets -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Management - Setup</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/cmxform.css">
-    <link rel="stylesheet" href="js/lib/validationEngine.jquery.css">
-
-    <!-- Scripts -->
-    <script src="js/lib/jquery.min.js" type="text/javascript"></script>
-    <script src="js/lib/jquery.validate.min.js" type="text/javascript"></script>
-
-    <script>
-        /*$.validator.setDefaults({
-         submitHandler: function() { alert("submitted!"); }
-         });*/
-
-        $(document).ready(function () {
-
-            // validate signup form on keyup and submit
-            $("#login-form").validate({
-                rules: {
-                    host: {
-                        required: true,
-                        minlength: 3
-                    },
-                    username: {
-                        required: true,
-                        minlength: 3
-                    }
-                },
-                messages: {
-                    host: {
-                        required: "Please Enter The Host",
-                        minlength: "Your Host must consist of at least 3 characters"
-                    },
-                    username: {
-                        required: "Please Enter The User Name",
-                        minlength: "Your User Name must be at least 3 characters long"
-                    }
-                }
-            });
-
-        });
-
-    </script>
-
-    <!-- Optimize for mobile devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 </head>
 <body>
-
-<!--    Only Index Page for Analytics   -->
-
-<!-- TOP BAR -->
-<div id="top-bar">
-
-    <div class="page-full-width">
-
-        <!--<a href="#" class="round button dark ic-left-arrow image-left ">See shortcuts</a>-->
-
-    </div>
-    <!-- end full-width -->
-
-</div>
-<!-- end top-bar -->
-
-
-<!-- HEADER -->
-<div id="header">
-
-    <div class="page-full-width cf">
-
-        <div id="login-intro" class="fl">
-
-            <h1>Installation </h1>
-
-
-        </div>
-        <!-- login-intro -->
-
-        <?php require_once __DIR__ . '/tpl/store_brand.php'; renderStoreBrand('company-branding'); ?>
-
-    </div>
-    <!-- end full-width -->
-
-</div>
-<!-- end header -->
-
-
-<!-- MAIN CONTENT -->
 <div id="content">
-
-    <form action="database_install.php" method="POST" id="login-form" class="cmxform" autocomplete="off">
-
-        <fieldset>
-            <p> <?php
-
-                if (isset($_REQUEST['msg'])) {
-
-                    $msg = $_REQUEST['msg'];
-                    echo "<p style=color:red>$msg</p>";
-                }
-                ?>
-
-            </p>
-
+    <h1>Set up Store Management</h1>
+    <?php if (!$enabled): ?>
+        <p>Create an empty database, copy <code>config.php.sample</code> to <code>config.php</code>,
+            and fill in your database settings and setup token. See <code>README.md</code> for the commands.</p>
+        <?php if (isset($config)): ?>
+            <p><a href="index.php">Go to login</a></p>
+        <?php endif; ?>
+    <?php else: ?>
+        <?php if ($error): ?>
+            <p class="error-box round" role="alert">The setup token did not match.</p>
+        <?php endif; ?>
+        <form id="login-form" method="post" action="setup_page.php">
+            <p>Setup will initialize the database named in your configuration.</p>
             <p>
-                <label for="login-host">DataBase Host Name</label>
-                <input type="text" id="host" class="round full-width-input" placeholder="ENTER DATABASE HOST NAME"
-                       name="host" autofocus/>
+                <label for="setup-token">Setup token</label>
+                <input type="password" class="round full-width-input" id="setup-token"
+                       name="setup_token" required autocomplete="off">
             </p>
-
-            <p>
-                <label for="login-user">DataBase User Name</label>
-                <input type="text" id="username" name="username" placeholder="ENTER DATABASE USERNAME"
-                       class="round full-width-input"/>
-            </p>
-
-            <p>
-                <label for="login-password">DataBase User Password</label>
-                <input type="password" id="password" name="password" placeholder="ENTER DATABASE PASSWORD"
-                       class="round full-width-input"/>
-            </p>
-
-
-            <!--<a href="dashboard.php" class="button round blue image-right ic-right-arrow">LOG IN</a>-->
-            <input type="submit" class="button round blue image-right ic-right-arrow" name="submit" value="INSTALL"/>
-        </fieldset>
-
-    </form>
-
+            <button type="submit" class="button round blue">Continue setup</button>
+        </form>
+    <?php endif; ?>
 </div>
-<!-- end content -->
-
-
 </body>
 </html>

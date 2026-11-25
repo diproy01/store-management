@@ -1,17 +1,13 @@
 <?php
 session_start();
-if (!isset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass'])) {
-    header('Location: index.php');
+if (!is_file(__DIR__ . '/config.php')) {
+    header('Location: install.php');
     exit;
 }
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib/db.class.php';
-if ($config !== [
-    'database' => $_SESSION['db_name'],
-    'host' => $_SESSION['host'],
-    'username' => $_SESSION['user'],
-    'password' => $_SESSION['pass'],
-]) {
+$authorization = $_SESSION['setup_authorization'] ?? '';
+if (!hash_equals(hash('sha256', serialize($config)), $authorization)) {
     header('Location: index.php');
     exit;
 }
@@ -40,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
     session_regenerate_id(true);
-    unset($_SESSION['db_name'], $_SESSION['host'], $_SESSION['user'], $_SESSION['pass']);
+    unset($_SESSION['setup_authorization']);
     $_SESSION['id'] = 1;
     $_SESSION['username'] = trim($username);
     $_SESSION['usertype'] = 'admin';
