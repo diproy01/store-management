@@ -1,0 +1,66 @@
+<?php
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+require_once __DIR__ . '/../lib/account_mail.php';
+
+try {
+    if (!is_file(__DIR__ . '/../config.php')) {
+        throw new RuntimeException('Missing config.php. Follow README.md.');
+    }
+    require __DIR__ . '/../config.php';
+    $settings = storeMailSettings($config);
+    if ($settings === null) {
+        throw new RuntimeException('Configure app_url, mail_from, and smtp in config.php.');
+    }
+    fwrite(STDOUT, 'Admin email: ');
+    $email = loginEmail(fgets(STDIN));
+    fwrite(STDOUT, 'Display name: ');
+    $name = trim((string) fgets(STDIN));
+    if ($email === null || preg_match('/\A.{1,120}\z/us', $name) !== 1) {
+        throw new RuntimeException('Enter a valid email and a display name of up to 120 characters.');
+    }
+
+    $db = storeAuthDb();
+    $lock = 'store-admin:' . substr(hash('sha256', $config['database']), 0, 48);
+    if ((int) $db->execute_query('SELECT GET_LOCK(?, 5)', [$lock])->fetch_row()[0] !== 1) {
+        throw new RuntimeException('Another administrator setup is running.');
+    }
+    $accounts = $db->query('SELECT id, email, password IS NULL AS pending, user_type FROM stock_user LIMIT 2')
+        ->fetch_all(MYSQLI_ASSOC);
+    if ($accounts === []) {
+        $db->execute_query(
+            "INSERT INTO stock_user (username, email, user_type) VALUES (?, ?, 'admin')",
+            [$name, $email]
+        );
+        $id = $db->insert_id;
+    } elseif (count($accounts) === 1 && (int) $accounts[0]['pending'] === 1
+        && $accounts[0]['user_type'] === 'admin' && $accounts[0]['email'] === $email) {
+        $id = $accounts[0]['id'];
+    } else {
+        throw new RuntimeException('An account already exists. Only a pending first admin can be invited again.');
+    }
+
+    $token = bin2hex(random_bytes(32));
+    $digest = hash('sha256', $token);
+    $db->execute_query(
+        'UPDATE stock_user SET reset_token_hash=?, reset_expires_at=UTC_TIMESTAMP() + INTERVAL 30 MINUTE
+         WHERE id=? AND password IS NULL',
+        [$digest, $id]
+    );
+    if ($db->affected_rows !== 1) {
+        throw new RuntimeException('The administrator has already set a password.');
+    }
+    if (!sendStorePasswordLink($settings, $email, $token, true)) {
+        $db->execute_query(
+            'UPDATE stock_user SET reset_token_hash=NULL, reset_expires_at=NULL WHERE id=? AND reset_token_hash=?',
+            [$id, $digest]
+        );
+        throw new RuntimeException('SMTP delivery failed. Check Composer, your SMTP settings, and the PHP error log, then rerun with the same email.');
+    }
+    fwrite(STDOUT, "Invitation accepted by the SMTP server. Check your inbox for the setup link.\n");
+} catch (mysqli_sql_exception | RuntimeException $exception) {
+    fwrite(STDERR, $exception->getMessage() . "\n");
+    exit(1);
+}

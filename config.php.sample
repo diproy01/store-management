@@ -4,5 +4,15 @@ $config = [
     'host' => 'localhost',
     'username' => 'store_user',
     'password' => '',
-    'setup_token' => '', // Set a random token for initial setup, then clear it.
+    // Used for first-admin invitations and password resets.
+    'app_url' => 'https://example.com/store-management',
+    'allow_local_http' => false, // Enable only for local testing on localhost or a private IP.
+    'mail_from' => 'store@example.com',
+    'smtp' => [
+        'host' => 'smtp.example.com',
+        'port' => 587,
+        'encryption' => 'starttls', // Use 'smtps' for implicit TLS, typically port 465.
+        'username' => 'store@example.com',
+        'password' => '',
+    ],
 ];

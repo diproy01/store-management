@@ -7,7 +7,7 @@ if (!isset($_SESSION['username']) || ($_SESSION['usertype'] ?? null) !== 'admin'
 error_reporting(0);
 include("lib/db.class.php");
 if (!is_file(__DIR__ . '/config.php')) {
-    header("location: install.php");
+    header("location: index.php");
     exit;
 }
 
@@ -15,6 +15,19 @@ require_once __DIR__ . '/config.php';
 
 // Open the base (construct the object):
 $db = new DB($config['database'], $config['host'], $config['username'], $config['password']);
+
+$credential = isset($_SESSION['id'], $_SESSION['credential_version'])
+    ? $db->connection->execute_query(
+        "SELECT password FROM stock_user WHERE id=? AND user_type='admin'", [$_SESSION['id']]
+    )->fetch_assoc()
+    : null;
+if (!isset($credential['password'])
+    || !hash_equals(hash('sha256', $credential['password']), $_SESSION['credential_version'])) {
+    $_SESSION = [];
+    session_destroy();
+    header('Location: index.php');
+    exit;
+}
 
 # Note that filters and validators are separate rule sets and method calls. There is a good reason for this.
 

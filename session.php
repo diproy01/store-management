@@ -7,7 +7,7 @@ if (!isset($_SESSION['username']) || ($_SESSION['usertype'] ?? null) !== 'admin'
 error_reporting(0);
 include("lib/db.class.php");
 if (!is_file(__DIR__ . '/config.php')) {
-    header('Location: install.php');
+    header('Location: index.php');
     exit;
 }
 require_once __DIR__ . '/config.php';
