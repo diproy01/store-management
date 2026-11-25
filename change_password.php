@@ -1,161 +1,61 @@
 <?php
-include_once("init.php");
+require_once __DIR__ . '/init.php';
+require_once __DIR__ . '/lib/auth.php';
 
+$_SESSION['password_csrf'] ??= bin2hex(random_bytes(32));
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf'] ?? null;
+    if (!is_string($token) || !hash_equals($_SESSION['password_csrf'], $token)) {
+        http_response_code(403);
+        exit;
+    }
+    $old = $_POST['old_pass'] ?? null;
+    $new = $_POST['new_pass'] ?? null;
+    $user = $db->connection->execute_query('SELECT password FROM stock_user WHERE id=?', [$_SESSION['id']])->fetch_assoc();
+    if (!validStorePassword($old) || !$user || $user['password'] === null || !password_verify($old, $user['password'])) {
+        $message = 'The current password is incorrect.';
+    } elseif (!validStorePassword($new) || $new !== ($_POST['confirm_pass'] ?? null)) {
+        $message = 'Enter matching new passwords of at least 8 characters and no more than 72 bytes.';
+    } else {
+        $newHash = password_hash($new, PASSWORD_DEFAULT);
+        $db->connection->execute_query(
+            'UPDATE stock_user SET password=?, reset_token_hash=NULL, reset_expires_at=NULL WHERE id=? AND BINARY password=?',
+            [$newHash, $_SESSION['id'], $user['password']]
+        );
+        if ($db->connection->affected_rows === 1) {
+            session_regenerate_id(true);
+            $_SESSION['credential_version'] = hash('sha256', $newHash);
+            $message = 'Password changed.';
+        } else {
+            $message = 'The password changed in another request. Retry with your current password.';
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Store Management - Dashboard</title>
-
-    <!-- Stylesheets -->
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Management - Change password</title>
     <link rel="stylesheet" href="css/style.css">
-
-    <!-- Optimize for mobile devices -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-
-    <!-- jQuery & JS files -->
-    <?php include_once("tpl/common_js.php"); ?>
-    <script src="js/script.js"></script>
 </head>
 <body>
-
-<!-- TOP BAR -->
-<?php include_once("tpl/top_bar.php"); ?>
-<!-- end top-bar -->
-
-
-<!-- HEADER -->
-<?php include_once("tpl/header.php"); ?>
-<!-- end header -->
-
-
-<!-- MAIN CONTENT -->
 <div id="content">
-
-    <div class="page-full-width cf">
-
-        <div class="side-menu fl">
-
-            <h3>Quick Links</h3>
-            <ul>
-                <li><a href="add_sales.php">Add Sales</a></li>
-                <li><a href="add_purchase.php">Add Purchase</a></li>
-                <li><a href="add_supplier.php">Add Supplier</a></li>
-                <li><a href="add_customer.php">Add Customer</a></li>
-                <li><a href="view_report.php">Report</a></li>
-            </ul>
-
-        </div>
-        <!-- end side-menu -->
-
-        <div class="side-content fr">
-
-            <div class="content-module">
-
-                <div class="content-module-heading cf">
-
-                    <h3 class="fl">Statistics</h3>
-                    <span class="fr expand-collapse-text">Click to collapse</span>
-                    <span class="fr expand-collapse-text initial-expand">Click to expand</span>
-
-                </div>
-                <!-- end content-module-heading -->
-
-                <div class="content-module-main cf">
-
-                    <?php
-                    if (isset($_POST['old_pass']) and isset($_POST['new_pass']) and isset($_POST['confirm_pass'])) {
-                        $username = $_SESSION['username'];
-                        $old_pass = $_POST['old_pass'];
-                        $count = $db->countOf("stock_user", "username='$username' and password='$old_pass'");
-                        if ($count == 0) {
-                            echo "<br><font color=red size=6px >Old Password is wrong!</font>";
-                        } else {
-                            if (trim($_POST['new_pass']) == trim($_POST['confirm_pass'])) {
-                                $con = $_POST['confirm_pass'];
-                                $db->query("update stock_user  SET password='$con' where username='$username'");
-                                echo "<br><font color=green size=6px >Password is Successfuly updated!</font>";
-                            } else {
-                                echo "<br><font color=red size=6px >Confirm password is Wrong!</font>";
-                            }
-                        }
-                    }
-                    ?>
-                    <form action="" method="post">
-                        <table style="width:600px; margin-left:50px; float:left;" border="0" cellspacing="0"
-                               cellpadding="0">
-
-                            <tr>
-                                <td>Old Password</td>
-                                <td><input type="password" name="old_pass" readonly="readonly"></td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                                <td>New Password</td>
-                                <td><input type="password" name="new_pass" readonly="readonly"></td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                                <td>Confirm Password</td>
-                                <td><input type="password" name="confirm_pass" readonly="readonly"></td>
-                            </tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                            <tr>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr></tr>
-                            <tr>
-                                <td>
-                                    <input class="button round blue image-right ic-add text-upper" type="submit"
-                                           name="Submit" name="change_pass" value="Save">
-                                </td>
-                                <td>
-                                    <input class="button round red   text-upper" type="reset" name="Reset"
-                                           value="Reset"></td>
-                            </tr>
-
-                        </table>
-                    </form>
-                    <!--<ul class="temporary-button-showcase">
-                                        <li><a href="#" class="button round blue image-right ic-add text-upper">Add</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-edit text-upper">Edit</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-delete text-upper">Delete</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-download text-upper">Download</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-upload text-upper">Upload</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-favorite text-upper">Favorite</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-print text-upper">Print</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-refresh text-upper">Refresh</a></li>
-                                        <li><a href="#" class="button round blue image-right ic-search text-upper">Search</a></li>
-                                    </ul>-->
-
-                </div>
-                <!-- end content-module-main -->
-
-
-            </div>
-            <!-- end content-module -->
-
-
-        </div>
-        <!-- end full-width -->
-
-    </div>
+    <h1>Change password</h1>
+    <?php if ($message !== ''): ?><p role="status"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></p><?php endif; ?>
+    <form id="login-form" method="post">
+        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['password_csrf'], ENT_QUOTES, 'UTF-8') ?>">
+        <p><label for="old-pass">Current password</label>
+            <input id="old-pass" name="old_pass" type="password" autocomplete="current-password" required></p>
+        <p><label for="new-pass">New password</label>
+            <input id="new-pass" name="new_pass" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></p>
+        <p><label for="confirm-pass">Confirm new password</label>
+            <input id="confirm-pass" name="confirm_pass" type="password" autocomplete="new-password" minlength="8" maxlength="72" required></p>
+        <button type="submit" class="button round blue">Save password</button>
+        <a href="dashboard.php">Dashboard</a>
+    </form>
 </div>
-
-
 </body>
 </html>

@@ -4,45 +4,70 @@ A PHP and MySQL/MariaDB application for point of sale, stock, purchasing, and re
 
 ## Requirements
 
-- PHP 8.4 with the `mysqli` and `session` extensions. The validator can also use `mbstring` and `iconv`.
+- PHP 8.4 with the `mysqli`, `session`, and `openssl` extensions. The validator can also use `mbstring` and `iconv`.
 - A MySQL or MariaDB database. The fresh installation was verified with MariaDB 11.8.
-- A writable PHP session directory.
+- Composer 2 for deployment and a writable PHP session directory.
 
-## Fresh installation
+## Install from the shell
 
-1. Create an **empty** database in phpMyAdmin or your database administration tool. Give the app's database account access to that database, including permission to create and alter its tables during setup.
-2. From the project folder on Oracle Linux, create the local configuration as the deployment administrator. Do this only for a new installation:
+1. Create an empty MySQL or MariaDB database and an application database account. Keep the project directory readable by PHP-FPM.
+2. From the project directory, copy the template and edit the database settings:
 
    ```bash
+   composer install --no-dev --optimize-autoloader
    cp -n config.php.sample config.php
-   php -r 'echo bin2hex(random_bytes(24)), PHP_EOL;'
+   nano config.php
    ```
 
-   Edit `config.php`. Set `database`, `host`, `username`, and `password`, then paste the generated value into `setup_token`. PHP-FPM needs read access to the file. For the `apache` worker on Oracle Linux, you can use `chgrp apache config.php` and `chmod 0640 config.php` from your administrator shell.
-3. Open `/store-management/install.php` in your browser. Enter your setup token. The wizard creates the tables, prompts you to create the first administrator, and opens Store Settings.
-4. Save your store details. Clear `setup_token` in your local configuration after setup. Keep `config.php` out of Git.
+   Keep `config.php` out of Git. On Oracle Linux with an `apache` PHP-FPM worker, an administrator who owns the file can use `chgrp apache config.php` and `chmod 0640 config.php` to grant read access.
+3. Set `app_url` to the application URL, including the subfolder, and `mail_from` to an address authorized by your mail relay. Fill in the `smtp` settings before creating the administrator.
+4. Import the schema and send your first-admin invitation:
 
-On Windows PowerShell, use `Copy-Item config.php.sample config.php` on a fresh checkout. The same PHP command generates the token. For local testing, run `php -S 127.0.0.1:8000` in the project directory and open <http://127.0.0.1:8000/install.php>.
+   ```bash
+   mariadb -u db_admin -p store_management < schema.sql
+   cp -n bin/create-admin.php.sample bin/create-admin.php
+   php bin/create-admin.php
+   ```
 
-The web installer only reads the project directory. Leave its standard Apache and SELinux permissions in place. A custom logo is optional and requires write access to `upload/` only.
+   Enter your email and display name. Open the emailed link within 30 minutes to choose a password. If it expires, rerun the script with the same email. You can remove your local copy of `bin/create-admin.php` after setup. Both it and `config.php` are ignored by Git. For MySQL, substitute `mysql` for `mariadb`.
+5. Sign in with your email and password, then open **Store Settings**. For a custom logo, deploy a PNG, JPEG, or GIF into `upload/` from the shell and select it at the bottom of the form.
 
-### Resume setup
+This procedure is for an empty database. Keep an existing installation or database separate when testing the fresh setup.
 
-If a previous installer created all the tables but failed before creating the first user, point `config.php` at that database and open `install.php`. The wizard reuses the complete schema. For a partially created schema, use a new empty database. If an account already exists, sign in and finish the profile in Store Settings.
+## Email delivery and password storage
 
-## Upgrade an existing database
+The invitation and **Forgot your password?** use PHPMailer to connect directly to the SMTP provider. Set the following values in your local `config.php`:
 
-1. Back up your database and test with a restored copy.
-2. If the copy matches the schema in `dipak_sample_pos_starting.sql` (2017), run `upgrade-2017-schema.sql` once on the copy. It adds the sales barcode column and defaults for fields that the application omits during inserts. If your schema differs, compare it with `schema.sql` and review which changes apply before running any SQL.
-3. Copy `config.php.sample` to `config.php` and enter the test database connection details. Existing installations can also reuse their original `config.php`.
-4. Start the app, sign in with your existing account, and verify stock counts, purchases, sales, and reports against the backup copy.
+| Setting | Value |
+|---|---|
+| `app_url` | The HTTPS URL of this app, including its subfolder. See below for local HTTP testing. |
+| `mail_from` | A sender address your provider authorizes. |
+| `smtp.host`, `smtp.port` | Your provider's SMTP host and port. |
+| `smtp.encryption` | `starttls` for STARTTLS (commonly port 587) or `smtps` for implicit TLS (commonly port 465). |
+| `smtp.username`, `smtp.password` | Your SMTP login and provider-issued password, app password, or SMTP credential. |
 
-The historical dumps were removed from the project. Keep any database backup outside the web root. Use `schema.sql` for a fresh database.
+Composer installs the dependencies into `vendor/`. Keep both `vendor/` and the configuration readable by PHP-FPM. Run Composer from your deployment shell. Test both the CLI invitation and the browser reset, since they can run with different permissions. If CLI works but PHP-FPM fails on Oracle Linux, check the PHP and SELinux audit logs for an outbound SMTP denial. If the provider accepts a message and it does not arrive, check its delivery logs and the recipient's spam folder.
+
+### Local HTTP testing
+
+For a trusted development LAN, use a private IPv4 address that the browser can reach. Replace the example IP with your VM address:
+
+```php
+'app_url' => 'http://192.168.104.88/store-management',
+'allow_local_http' => true,
+'mail_from' => 'store@example.com',
+```
+
+Local HTTP also accepts `localhost` and loopback IPs, which work when the browser can reach the app on that host. Production should use HTTPS and keep `allow_local_http` set to `false`. HTTP does not protect credentials or reset links in transit, so use the exception only on a trusted local network. SMTP still uses the configured TLS mode in both environments.
+
+Passwords require at least eight characters and allow up to 72 bytes. Passwords use PHP's one-way `password_hash()` API and are checked with `password_verify()`. Invitation and reset links are single-use and expire after 30 minutes. The database stores only a hash of each link token.
+
+The browser does not need write access to the project or logo directory. PHP still needs its normal session storage outside the project.
 
 ## Deployment status
 
-This is a PHP compatibility upgrade. The application still stores passwords in plaintext and uses legacy SQL construction in several pages. Run it on localhost or in a private test environment until those areas are hardened.
+The application still uses legacy SQL construction in several inventory and reporting pages. Run it in a private environment until those areas are hardened.
 
 ## Store branding
 
-The default header displays Store Management. Set your own store name and upload a logo in Store Settings. If an existing database still contains your previous company details, update those fields in Store Settings so reports use your current information. If its saved logo file is missing, the header displays Store Management.
+The default header displays Store Management. Set your store name in Store Settings. To use a logo, copy the image into upload/ from the shell and select it in Store Settings. If an existing database still contains your previous company details, update those fields in Store Settings so reports use your current information. If its saved logo file is missing, the header displays Store Management.

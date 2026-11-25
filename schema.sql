@@ -123,10 +123,14 @@ CREATE TABLE `stock_sales` (
 CREATE TABLE `stock_user` (
   `id` int(10) UNSIGNED NOT NULL,
   `username` varchar(120) NOT NULL,
-  `password` varchar(120) NOT NULL,
+  `email` varchar(254) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `password` varchar(255) DEFAULT NULL,
   `user_type` varchar(20) NOT NULL,
-  `answer` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  `reset_token_hash` char(64) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
+  `reset_expires_at` datetime DEFAULT NULL,
+  UNIQUE KEY `stock_user_email` (`email`),
+  UNIQUE KEY `stock_user_reset_token` (`reset_token_hash`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `store_details` (
   `name` varchar(100) NOT NULL,
@@ -139,7 +143,7 @@ CREATE TABLE `store_details` (
   `email` varchar(100) NOT NULL,
   `web` varchar(100) NOT NULL,
   `pin` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `supplier_details` (
   `id` int(15) UNSIGNED NOT NULL,
@@ -238,7 +242,7 @@ ALTER TABLE `stock_sales`
   MODIFY `id` int(15) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `stock_user`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 ALTER TABLE `supplier_details`
   MODIFY `id` int(15) UNSIGNED NOT NULL AUTO_INCREMENT;
