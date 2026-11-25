@@ -7,7 +7,7 @@ include_once("init.php");
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ISOLUTION - Payment</title>
+    <title>Store Management - Payment</title>
 
     <!-- Stylesheets -->
     <!---->
@@ -476,8 +476,6 @@ include_once("init.php");
                 </div>
             </div>
             <div id="footer">
-                <p>Any Queries email to <a target="blank" href="http://ihelpbd.com/">info@ihelpbd.com</a>.
-                </p>
 
             </div>
             <!-- end footer -->

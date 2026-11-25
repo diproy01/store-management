@@ -4,4 +4,5 @@ $config = [
     'host' => 'localhost',
     'username' => 'store_user',
     'password' => '',
+    'setup_token' => '', // Set a random token for initial setup, then clear it.
 ];
